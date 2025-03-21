@@ -1,3 +1,14 @@
+"""
+-------------------------------------------------
+Group 1 - Project Name
+Created on: 2025-03-11
+Authors: Louis LHOTTE, Ambroise MARTIN-ROUVILLE, Edouard SEGUIER
+-------------------------------------------------
+
+Description:
+This script allows us to place robots and make them move step by step (model class).
+"""
+
 from mesa import Model, DataCollector
 from mesa.space import MultiGrid
 # Import Python's random module

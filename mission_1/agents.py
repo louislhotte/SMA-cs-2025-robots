@@ -1,3 +1,13 @@
+"""
+-------------------------------------------------
+Group 1 - Project Name
+Created on: 2025-03-11
+Authors: Louis LHOTTE, Ambroise MARTIN-ROUVILLE, Edouard SEGUIER
+-------------------------------------------------
+
+Description:
+This script defines the Radioactive and green agents
+"""
 
 from mesa import Agent
 from objects import Waste

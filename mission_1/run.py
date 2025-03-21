@@ -1,3 +1,14 @@
+"""
+-------------------------------------------------
+Group 1 - Project Name
+Created on: 2025-03-11
+Authors: Louis LHOTTE, Ambroise MARTIN-ROUVILLE, Edouard SEGUIER
+-------------------------------------------------
+
+Description:
+This script contains the frontend of the solara application
+"""
+
 import mesa
 print(f"Mesa version: {mesa.__version__}")
 

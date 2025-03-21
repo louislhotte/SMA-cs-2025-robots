@@ -1,3 +1,13 @@
+"""
+-------------------------------------------------
+Group 1 - Project Name
+Created on: 2025-03-11
+Authors: Louis LHOTTE, Ambroise MARTIN-ROUVILLE, Edouard SEGUIER
+-------------------------------------------------
+
+Description:
+This script depicts the different zones, their waste and radioactivity.
+"""
 
 from mesa import Agent
 import random

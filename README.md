@@ -45,3 +45,6 @@ Three types of robots operate under specific constraints:
 
 The implementation will involve defining robot agent classes, environmental objects, and a simulation model to observe and optimize robot behavior in waste management.
 
+
+
+A rajouter: résultats, choix, etc... !

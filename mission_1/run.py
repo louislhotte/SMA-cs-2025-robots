@@ -35,7 +35,7 @@ model = RobotMission(
     nb_red_agent=2
 )
 
-# Create some reactive state for the model
+# Create reactive state for the model and simulation step
 current_model = solara.reactive(model)
 step_count = solara.reactive(0)
 
@@ -44,7 +44,7 @@ def step_model():
     current_model.value.step()
     step_count.value += 1
 
-# Function to render agents on the grid
+# Function to render agents on the grid with legend below
 def render_grid():
     fig = Figure(figsize=(10, 8))
     ax = fig.add_subplot(111)
@@ -64,7 +64,6 @@ def render_grid():
         # Skip agents with no position
         if not hasattr(agent, 'pos') or agent.pos is None:
             continue
-            
         try:
             if isinstance(agent, GreenRobot):
                 ax.plot(agent.pos[0] + 0.5, agent.pos[1] + 0.5, 'go', markersize=10)
@@ -92,6 +91,7 @@ def render_grid():
     ax.grid(True)
     ax.set_title(f'Robot Waste Simulation - Step {step_count.value}')
 
+    # Create custom legend elements
     legend_elements = [
         Line2D([0], [0], marker='o', color='w', label='Green Robot', markerfacecolor='green', markersize=10),
         Line2D([0], [0], marker='o', color='w', label='Yellow Robot', markerfacecolor='yellow', markersize=10),
@@ -102,6 +102,7 @@ def render_grid():
         Line2D([0], [0], marker='s', color='w', label='Waste Disposal Zone', markerfacecolor='blue', markersize=6),
     ]
     
+    # Add the legend below the grid
     ax.legend(handles=legend_elements, loc='center', bbox_to_anchor=(0.5, -0.1), ncol=4)
     
     return fig
@@ -128,37 +129,63 @@ def render_barplot():
     
     return fig
 
-# The main Solara app
+# Function to render a textual performance report for robot agents
+def render_report():
+    report_lines = []
+    for agent in current_model.value.schedule.agents:
+        if isinstance(agent, (GreenRobot, YellowRobot, RedRobot)):
+            collected = getattr(agent.knowledge, 'collected_waste', 0)
+            report_lines.append(f"{agent.__class__.__name__} {agent.unique_id}: {collected} waste collected, performing mission.")
+    if not report_lines:
+        report_lines.append("No agent performance data available.")
+    return "\n".join(report_lines)
+
+# The main Solara app using a sidebar for parameter controls
 @solara.component
 def Page():
-    # Create UI controls
-    with solara.Column():
-        solara.Title("Robot Waste Collection Simulation")
-        
-        # Controls in a row
-        with solara.Row():
-            # Step button
-            solara.Button("Step", on_click=step_model)
-            
-            # Reset button (recreates the model)
-            def reset_model():
-                current_model.value = RobotMission(
-                    width=12,
-                    height=10,
-                    initial_green_waste=10,
-                    initial_yellow_waste=8,
-                    initial_red_waste=8,
-                    nb_green_agent=2,
-                    nb_yellow_agent=2,
-                    nb_red_agent=2
-                )
-                step_count.value = 0
-                
+    # Create reactive variables for model parameters
+    width_val = solara.reactive(12)
+    height_val = solara.reactive(10)
+    initial_green_waste_val = solara.reactive(10)
+    initial_yellow_waste_val = solara.reactive(8)
+    initial_red_waste_val = solara.reactive(8)
+    nb_green_agent_val = solara.reactive(2)
+    nb_yellow_agent_val = solara.reactive(2)
+    nb_red_agent_val = solara.reactive(2)
+
+    def reset_model():
+        # Create a new model instance using the current slider values
+        current_model.value = RobotMission(
+            width=width_val.value,
+            height=height_val.value,
+            initial_green_waste=initial_green_waste_val.value,
+            initial_yellow_waste=initial_yellow_waste_val.value,
+            initial_red_waste=initial_red_waste_val.value,
+            nb_green_agent=nb_green_agent_val.value,
+            nb_yellow_agent=nb_yellow_agent_val.value,
+            nb_red_agent=nb_red_agent_val.value
+        )
+        step_count.value = 0
+
+    with solara.Column() as main:
+        # Sidebar with parameter controls
+        with solara.Sidebar():
+            solara.Markdown("## Parameters")
+            solara.SliderInt("Width", value=width_val, min=5, max=30)
+            solara.SliderInt("Height", value=height_val, min=5, max=30)
+            solara.SliderInt("Initial Green Waste", value=initial_green_waste_val, min=0, max=50)
+            solara.SliderInt("Initial Yellow Waste", value=initial_yellow_waste_val, min=0, max=50)
+            solara.SliderInt("Initial Red Waste", value=initial_red_waste_val, min=0, max=50)
+            solara.SliderInt("Number of Green Agents", value=nb_green_agent_val, min=1, max=3)
+            solara.SliderInt("Number of Yellow Agents", value=nb_yellow_agent_val, min=1, max=3)
+            solara.SliderInt("Number of Red Agents", value=nb_red_agent_val, min=1, max=3)
             solara.Button("Reset", on_click=reset_model)
-            
-            # Display step count
+
+        # Main content area
+        solara.Title("Robot Waste Collection Simulation")
+        with solara.Row():
+            solara.Button("Step", on_click=step_model)
             solara.Info(f"Step: {step_count.value}")
-        
         with solara.Row():
             with solara.Column():
                 update_counter.get() 
@@ -173,7 +200,12 @@ def Page():
                     solara.FigureMatplotlib(barplot_fig)
                 except Exception as e:
                     solara.Error(f"Error rendering barplot: {str(e)}")
+        try:
+            report_text = render_report()
+            solara.Markdown(report_text)
+        except Exception as e:
+            solara.Error(f"Error rendering report: {str(e)}")
+    return main
 
-# The key fix: use solara.run() instead of os.system
-# if __name__ == "__main__":
-#     os.system('solara run run.py --port 8523')
+# To run the app:
+# solara run run.py --port 8523

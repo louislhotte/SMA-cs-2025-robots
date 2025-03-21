@@ -11,6 +11,7 @@ This script contains the frontend of the solara application
 
 from matplotlib.lines import Line2D
 import mesa
+import threading
 print(f"Mesa version: {mesa.__version__}")
 
 import solara
@@ -57,6 +58,13 @@ def step_model():
     current_model.value.step()
     step_count.value += 1
     update_waste_history()
+
+# Function to run simulation continuously while running is True.
+def run_simulation(interval=0.5):
+    if running.value:
+        step_model()
+        # Schedule the next step using a background timer
+        threading.Timer(interval, run_simulation, [interval]).start()
 
 # Function to render agents on the grid with legend below
 def render_grid():
@@ -151,15 +159,18 @@ def render_report():
         report_lines.append("No agent performance data available.")
     return "\n".join(report_lines)
 
+# Reactive variable to control simulation running state
+running = solara.reactive(False)
+
 # The main Solara app using a sidebar for parameter controls
 @solara.component
 def Page():
     # Create reactive variables for model parameters
-    width_val = solara.reactive(12)
+    width_val = solara.reactive(10)
     height_val = solara.reactive(10)
     initial_green_waste_val = solara.reactive(10)
-    initial_yellow_waste_val = solara.reactive(8)
-    initial_red_waste_val = solara.reactive(8)
+    initial_yellow_waste_val = solara.reactive(5)
+    initial_red_waste_val = solara.reactive(2)
     nb_green_agent_val = solara.reactive(2)
     nb_yellow_agent_val = solara.reactive(2)
     nb_red_agent_val = solara.reactive(2)
@@ -181,6 +192,12 @@ def Page():
         waste_history = []
         update_waste_history()  # capture initial counts
 
+    def toggle_running():
+        # Toggle running state. When switching to play, start the simulation.
+        running.set(not running.value)
+        if running.value:
+            run_simulation()  # start simulation
+
     with solara.Column() as main:
         # Sidebar with parameter controls
         with solara.Sidebar():
@@ -199,6 +216,8 @@ def Page():
         solara.Title("Robot Waste Collection Simulation")
         with solara.Row():
             solara.Button("Step", on_click=step_model)
+            # Play/Stop button: shows "Play" when simulation is stopped and "Stop" when running
+            solara.Button("Stop" if running.value else "Play", on_click=toggle_running)
             solara.Info(f"Step: {step_count.value}")
         with solara.Row():
             with solara.Column():

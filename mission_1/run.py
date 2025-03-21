@@ -9,6 +9,7 @@ Description:
 This script contains the frontend of the solara application
 """
 
+from matplotlib.lines import Line2D
 import mesa
 print(f"Mesa version: {mesa.__version__}")
 
@@ -43,7 +44,7 @@ def step_model():
     current_model.value.step()
     step_count.value += 1
 
-# Function to render agents
+# Function to render agents on the grid
 def render_grid():
     fig = Figure(figsize=(10, 8))
     ax = fig.add_subplot(111)
@@ -90,6 +91,40 @@ def render_grid():
     ax.set_yticks(range(grid_height + 1))
     ax.grid(True)
     ax.set_title(f'Robot Waste Simulation - Step {step_count.value}')
+
+    legend_elements = [
+        Line2D([0], [0], marker='o', color='w', label='Green Robot', markerfacecolor='green', markersize=10),
+        Line2D([0], [0], marker='o', color='w', label='Yellow Robot', markerfacecolor='yellow', markersize=10),
+        Line2D([0], [0], marker='o', color='w', label='Red Robot', markerfacecolor='red', markersize=10),
+        Line2D([0], [0], marker='s', color='w', label='Green Waste', markerfacecolor='green', markersize=8),
+        Line2D([0], [0], marker='s', color='w', label='Yellow Waste', markerfacecolor='yellow', markersize=8),
+        Line2D([0], [0], marker='s', color='w', label='Red Waste', markerfacecolor='red', markersize=8),
+        Line2D([0], [0], marker='s', color='w', label='Waste Disposal Zone', markerfacecolor='blue', markersize=6),
+    ]
+    
+    ax.legend(handles=legend_elements, loc='center', bbox_to_anchor=(0.5, -0.1), ncol=4)
+    
+    return fig
+
+# Function to render the waste count barplot
+def render_barplot():
+    # Count waste by type
+    waste_counts = {"green": 0, "yellow": 0, "red": 0}
+    for agent in current_model.value.schedule.agents:
+        if isinstance(agent, Waste):
+            waste_type = agent.waste_type
+            if waste_type in waste_counts:
+                waste_counts[waste_type] += 1
+    
+    # Create barplot
+    fig = Figure(figsize=(6, 4))
+    ax = fig.add_subplot(111)
+    types = list(waste_counts.keys())
+    counts = [waste_counts[t] for t in types]
+    ax.bar(types, counts, color=['green', 'gold', 'red'])
+    ax.set_title("Waste Count")
+    ax.set_xlabel("Waste Type")
+    ax.set_ylabel("Count")
     
     return fig
 
@@ -124,13 +159,20 @@ def Page():
             # Display step count
             solara.Info(f"Step: {step_count.value}")
         
-        # Grid visualization
-        update_counter.get()  # Force update when the model changes
-        try:
-            grid_fig = render_grid()
-            solara.FigureMatplotlib(grid_fig)
-        except Exception as e:
-            solara.Error(f"Error rendering grid: {str(e)}")
+        with solara.Row():
+            with solara.Column():
+                update_counter.get() 
+                try:
+                    grid_fig = render_grid()
+                    solara.FigureMatplotlib(grid_fig)
+                except Exception as e:
+                    solara.Error(f"Error rendering grid: {str(e)}")
+            with solara.Column():
+                try:
+                    barplot_fig = render_barplot()
+                    solara.FigureMatplotlib(barplot_fig)
+                except Exception as e:
+                    solara.Error(f"Error rendering barplot: {str(e)}")
 
 # The key fix: use solara.run() instead of os.system
 # if __name__ == "__main__":

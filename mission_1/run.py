@@ -39,10 +39,24 @@ model = RobotMission(
 current_model = solara.reactive(model)
 step_count = solara.reactive(0)
 
-# Function to step the model
+# Global variable to store waste count history as tuples: (step, green, yellow, red)
+waste_history = []
+
+def update_waste_history():
+    """Update waste_history with the current waste counts from the model."""
+    counts = {"green": 0, "yellow": 0, "red": 0}
+    for agent in current_model.value.schedule.agents:
+        if isinstance(agent, Waste):
+            waste_type = agent.waste_type
+            if waste_type in counts:
+                counts[waste_type] += 1
+    waste_history.append((step_count.value, counts["green"], counts["yellow"], counts["red"]))
+
+# Function to step the model and update history
 def step_model():
     current_model.value.step()
     step_count.value += 1
+    update_waste_history()
 
 # Function to render agents on the grid with legend below
 def render_grid():
@@ -102,31 +116,28 @@ def render_grid():
         Line2D([0], [0], marker='s', color='w', label='Waste Disposal Zone', markerfacecolor='blue', markersize=6),
     ]
     
-    # Add the legend below the grid
     ax.legend(handles=legend_elements, loc='center', bbox_to_anchor=(0.5, -0.1), ncol=4)
     
     return fig
 
-# Function to render the waste count barplot
-def render_barplot():
-    # Count waste by type
-    waste_counts = {"green": 0, "yellow": 0, "red": 0}
-    for agent in current_model.value.schedule.agents:
-        if isinstance(agent, Waste):
-            waste_type = agent.waste_type
-            if waste_type in waste_counts:
-                waste_counts[waste_type] += 1
-    
-    # Create barplot
+# Function to render the waste count line plot (evolution over steps)
+def render_lineplot():
     fig = Figure(figsize=(6, 4))
     ax = fig.add_subplot(111)
-    types = list(waste_counts.keys())
-    counts = [waste_counts[t] for t in types]
-    ax.bar(types, counts, color=['green', 'gold', 'red'])
-    ax.set_title("Waste Count")
-    ax.set_xlabel("Waste Type")
-    ax.set_ylabel("Count")
-    
+    if waste_history:
+        # Unpack history data
+        steps = [s for s, g, y, r in waste_history]
+        green_counts = [g for s, g, y, r in waste_history]
+        yellow_counts = [y for s, g, y, r in waste_history]
+        red_counts = [r for s, g, y, r in waste_history]
+        # Plot lines with markers at each step
+        ax.plot(steps, green_counts, label="Green Waste", marker='o', color='green')
+        ax.plot(steps, yellow_counts, label="Yellow Waste", marker='o', color='gold')
+        ax.plot(steps, red_counts, label="Red Waste", marker='o', color='red')
+        ax.set_title("Waste Count over Simulation Steps")
+        ax.set_xlabel("Step")
+        ax.set_ylabel("Waste Count")
+        ax.legend()
     return fig
 
 # Function to render a textual performance report for robot agents
@@ -154,7 +165,8 @@ def Page():
     nb_red_agent_val = solara.reactive(2)
 
     def reset_model():
-        # Create a new model instance using the current slider values
+        # Reset the model using the current slider values and clear waste history
+        global waste_history
         current_model.value = RobotMission(
             width=width_val.value,
             height=height_val.value,
@@ -166,6 +178,8 @@ def Page():
             nb_red_agent=nb_red_agent_val.value
         )
         step_count.value = 0
+        waste_history = []
+        update_waste_history()  # capture initial counts
 
     with solara.Column() as main:
         # Sidebar with parameter controls
@@ -196,10 +210,10 @@ def Page():
                     solara.Error(f"Error rendering grid: {str(e)}")
             with solara.Column():
                 try:
-                    barplot_fig = render_barplot()
-                    solara.FigureMatplotlib(barplot_fig)
+                    line_fig = render_lineplot()
+                    solara.FigureMatplotlib(line_fig)
                 except Exception as e:
-                    solara.Error(f"Error rendering barplot: {str(e)}")
+                    solara.Error(f"Error rendering line plot: {str(e)}")
         try:
             report_text = render_report()
             solara.Markdown(report_text)

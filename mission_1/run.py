@@ -46,7 +46,7 @@ action_stats = {"GreenRobot": 0, "YellowRobot": 0, "RedRobot": 0}
 
 def log_action(message):
     journal_logs.append(f"[Step {step_count.value}] {message}")
-    if len(journal_logs) > 10:
+    if len(journal_logs) > 15:
         journal_logs.pop(0)
 
 
@@ -81,6 +81,12 @@ def render_grid():
     ax.add_patch(plt.Rectangle((zone_width, 0), zone_width, grid_height, color='lightyellow', alpha=0.3))
     ax.add_patch(plt.Rectangle((2*zone_width, 0), zone_width, grid_height, color='lightcoral', alpha=0.3))
 
+    # Visualisation des cellules explorées
+    for x in range(grid_width):
+        for y in range(grid_height):
+            if current_model.value.explored_map.get((x, y), False):
+                ax.add_patch(plt.Rectangle((x, y), 1, 1, color='darkgray', alpha=0.2))
+    
     for agent in current_model.value.schedule.agents:
         if not hasattr(agent, 'pos') or agent.pos is None:
             continue
@@ -114,6 +120,7 @@ def render_grid():
         Line2D([0], [0], marker='s', color='w', label='Yellow Waste', markerfacecolor='yellow', markersize=8),
         Line2D([0], [0], marker='s', color='w', label='Red Waste', markerfacecolor='red', markersize=8),
         Line2D([0], [0], marker='s', color='w', label='Waste Disposal Zone', markerfacecolor='blue', markersize=6),
+        Line2D([0], [0], marker='s', color='w', label='Explored Area', markerfacecolor='darkgray', alpha=0.5, markersize=8),
     ]
 
     ax.legend(handles=legend_elements, loc='center', bbox_to_anchor=(0.5, -0.1), ncol=4)

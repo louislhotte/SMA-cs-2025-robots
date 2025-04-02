@@ -30,6 +30,13 @@ class RobotMission(Model):
         self.nb_green_agent = nb_green_agent
         self.nb_red_agent = nb_red_agent
 
+        self.explored_map = {}
+        for x in range(self.grid.width):
+            for y in range(self.grid.height):
+                self.explored_map[(x, y)] = False
+        
+        self.pheromone_decay_rate = 0.1 
+
         l = self.grid.width // 3
         for x in range(self.grid.width):
             for y in range(self.grid.height):
@@ -48,6 +55,8 @@ class RobotMission(Model):
         self.datacollector = DataCollector({
             "Waste": lambda m: m.schedule.get_type_count(Waste),
         })
+
+ 
 
         def find_empty_cell(x_start, x_end, height, grid):
             while True:
@@ -97,10 +106,18 @@ class RobotMission(Model):
             dz3_agent = WasteDisposalZone(self.schedule.get_agent_count(), self)
             self.grid.place_agent(dz3_agent, dz3_pos)
             self.schedule.add(dz3_agent)
+    
+    def reset_old_explorations(self):
+        "Réinitialise périodiquement certaines cellules explorées pour permettre la redécouverte."
+        if self.schedule.steps % 30 == 0:  # Tous les 20 pas de simulation
+            for pos in list(self.explored_map.keys()):                    # Une chance basée sur le taux de déclin pour réinitialiser une cellule explorée
+                if self.explored_map[pos] and self.random.random() < self.pheromone_decay_rate:
+                    self.explored_map[pos] = False
 
     def step(self):
         self.schedule.step()
         self.datacollector.collect(self)
+        self.reset_old_explorations()
 
     def place_waste_in_zone(self, waste_type, x_start, x_end, height):
         waste = Waste(self.schedule.get_agent_count(), self, waste_type=waste_type)

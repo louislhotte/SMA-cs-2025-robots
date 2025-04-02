@@ -25,6 +25,7 @@ class GreenRobot(Agent):
             "waste_here": False,
             "current_position": None,
             "target_location": None,
+            "is_exploring": False,
         }
         # Inbox for receiving messages
         self.inbox = []
@@ -33,6 +34,8 @@ class GreenRobot(Agent):
         contents = self.model.grid.get_cell_list_contents([self.pos])
         waste_here = any(isinstance(c, Waste) and c.waste_type == "green" for c in contents)
         self.knowledge.update({"waste_here": waste_here, "current_position": self.pos})
+        if self.knowledge["is_exploring"]:
+            self.model.explored_map[self.pos] = True
         
     def deliberate(self, knowledge):
         # GreenRobot does not process messages in this example.
@@ -43,15 +46,43 @@ class GreenRobot(Agent):
         elif len(knowledge["collected_waste"]) == 1 and knowledge["collected_waste"][0].waste_type == "yellow":
             return "dispose_waste"
         else:
-            return "move_randomly"
+            self.knowledge["is_exploring"] = True
+            return "move_smartly"
 
     def do(self, action):
         if action in ["collect_waste", "dispose_waste", "transform_waste"]:
             self.model.perform_action(self, action)
+            self.knowledge["is_exploring"] = False
         elif action == "move_randomly":
             possible_steps = self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False)
             new_position = self.model.random.choice(possible_steps)
             self.model.move_robot(self, new_position)
+        elif action == "move_smartly":
+            self.move_smartly()
+    
+    def move_smartly(self):
+        possible_steps = self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False)
+        
+        # Filtrer les positions qui sont accessibles
+        allowed_positions = [pos for pos in possible_steps if self.model.is_position_allowed(self, pos)]
+        
+        if not allowed_positions:
+            return  # Aucun mouvement possible
+        
+        # Vérifier si des cellules non explorées sont disponibles
+        unexplored_positions = [pos for pos in allowed_positions if not self.model.explored_map.get(pos, False)]
+        
+        # S'il existe des cellules non explorées, en choisir une au hasard
+        if unexplored_positions:
+            target_pos = self.model.random.choice(unexplored_positions)
+        else:
+            # Sinon, choisir aléatoirement parmi toutes les positions autorisées
+            target_pos = self.model.random.choice(allowed_positions)
+        
+        # Vérifier si la position est déjà occupée par un autre robot
+        contents = self.model.grid.get_cell_list_contents(target_pos)
+        if not any(isinstance(c, (GreenRobot, YellowRobot, RedRobot)) for c in contents):
+            self.model.move_robot(self, target_pos)
 
     def step(self):
         self.percepts()
@@ -69,6 +100,7 @@ class YellowRobot(Agent):
             "waste_here": False,
             "current_position": None,
             "target_location": None,
+            "is_exploring": False,
         }
         self.inbox = []
 
@@ -76,12 +108,15 @@ class YellowRobot(Agent):
         contents = self.model.grid.get_cell_list_contents([self.pos])
         waste_here = any(isinstance(c, Waste) and c.waste_type == "yellow" for c in contents)
         self.knowledge.update({"waste_here": waste_here, "current_position": self.pos})
+        if self.knowledge["is_exploring"]:
+            self.model.explored_map[self.pos] = True
         
     def process_messages(self):
         # Process any pick_up messages and set a target location accordingly.
         for message in self.inbox:
             if message.get("type") == "pick_up_waste":
                 self.knowledge["target_location"] = message.get("location")
+                self.knowledge["is_exploring"] = False  # Arrêter l'exploration quand un message est reçu
         self.inbox.clear()
 
     def deliberate(self, knowledge):
@@ -96,7 +131,9 @@ class YellowRobot(Agent):
         elif len(knowledge["collected_waste"]) == 1 and knowledge["collected_waste"][0].waste_type == "red":
             return "dispose_waste"
         else:
-            return "move_randomly"
+            # Commencer l'exploration à la recherche de déchets
+            self.knowledge["is_exploring"] = True
+            return "move_smartly"
 
     def move_towards_target(self):
         target = self.knowledge["target_location"]
@@ -123,21 +160,51 @@ class YellowRobot(Agent):
         if new_position == target:
             self.knowledge["target_location"] = None
 
+    def move_smartly(self):
+        possible_steps = self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False)
+        
+        # Filtrer les positions qui sont accessibles
+        allowed_positions = [pos for pos in possible_steps if self.model.is_position_allowed(self, pos)]
+        
+        if not allowed_positions:
+            return  # Aucun mouvement possible
+        
+        # Vérifier si des cellules non explorées sont disponibles
+        unexplored_positions = [pos for pos in allowed_positions if not self.model.explored_map.get(pos, False)]
+        
+        # S'il existe des cellules non explorées, en choisir une au hasard
+        if unexplored_positions:
+            target_pos = self.model.random.choice(unexplored_positions)
+        else:
+            # Sinon, choisir aléatoirement parmi toutes les positions autorisées
+            target_pos = self.model.random.choice(allowed_positions)
+        
+        # Vérifier si la position est déjà occupée par un autre robot
+        contents = self.model.grid.get_cell_list_contents(target_pos)
+        if not any(isinstance(c, (GreenRobot, YellowRobot, RedRobot)) for c in contents):
+            self.model.move_robot(self, target_pos)
+
     def do(self, action):
         if action in ["collect_waste", "dispose_waste", "transform_waste"]:
             self.model.perform_action(self, action)
+            # Fin de l'exploration quand une action est effectuée
+            self.knowledge["is_exploring"] = False
         elif action == "move_randomly":
             possible_steps = self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False)
             new_position = self.model.random.choice(possible_steps)
             self.model.move_robot(self, new_position)
         elif action == "move_to_target":
             self.move_towards_target()
+        elif action == "move_smartly":
+            self.move_smartly()
 
     def step(self):
         self.process_messages()
         self.percepts()
         action = self.deliberate(self.knowledge)
         self.do(action)
+
+
 
 class RedRobot(Agent):
     def __init__(self, unique_id, model):
@@ -150,6 +217,7 @@ class RedRobot(Agent):
             "waste_here": False,
             "current_position": None,
             "target_location": None,
+            "is_exploring": False,
         }
         self.inbox = []
 
@@ -157,11 +225,14 @@ class RedRobot(Agent):
         contents = self.model.grid.get_cell_list_contents([self.pos])
         waste_here = any(isinstance(c, Waste) and c.waste_type == "red" for c in contents)
         self.knowledge.update({"waste_here": waste_here, "current_position": self.pos})
+        if self.knowledge["is_exploring"]:
+            self.model.explored_map[self.pos] = True
         
     def process_messages(self):
         for message in self.inbox:
             if message.get("type") == "pick_up_waste":
                 self.knowledge["target_location"] = message.get("location")
+                self.knowledge["is_exploring"] = False  # Arrêter l'exploration quand un message est reçu
         self.inbox.clear()
 
     def deliberate(self, knowledge):
@@ -172,7 +243,9 @@ class RedRobot(Agent):
         elif len(knowledge["collected_waste"]) == 1:
             return "dispose_waste"
         else:
-            return "move_randomly"
+            # Commencer l'exploration à la recherche de déchets
+            self.knowledge["is_exploring"] = True
+            return "move_smartly"
 
     def move_towards_target(self):
         target = self.knowledge["target_location"]
@@ -197,15 +270,43 @@ class RedRobot(Agent):
         if new_position == target:
             self.knowledge["target_location"] = None
 
+    def move_smartly(self):
+        possible_steps = self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False)
+        
+        # Filtrer les positions qui sont accessibles
+        allowed_positions = [pos for pos in possible_steps if self.model.is_position_allowed(self, pos)]
+        
+        if not allowed_positions:
+            return  # Aucun mouvement possible
+        
+        # Vérifier si des cellules non explorées sont disponibles
+        unexplored_positions = [pos for pos in allowed_positions if not self.model.explored_map.get(pos, False)]
+        
+        # S'il existe des cellules non explorées, en choisir une au hasard
+        if unexplored_positions:
+            target_pos = self.model.random.choice(unexplored_positions)
+        else:
+            # Sinon, choisir aléatoirement parmi toutes les positions autorisées
+            target_pos = self.model.random.choice(allowed_positions)
+        
+        # Vérifier si la position est déjà occupée par un autre robot
+        contents = self.model.grid.get_cell_list_contents(target_pos)
+        if not any(isinstance(c, (GreenRobot, YellowRobot, RedRobot)) for c in contents):
+            self.model.move_robot(self, target_pos)
+
     def do(self, action):
         if action in ["collect_waste", "dispose_waste"]:
             self.model.perform_action(self, action)
+            # Fin de l'exploration quand une action est effectuée
+            self.knowledge["is_exploring"] = False
         elif action == "move_randomly":
             possible_steps = self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False)
             new_position = self.model.random.choice(possible_steps)
             self.model.move_robot(self, new_position)
         elif action == "move_to_target":
             self.move_towards_target()
+        elif action == "move_smartly":
+            self.move_smartly()
 
     def step(self):
         self.process_messages()

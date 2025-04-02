@@ -61,48 +61,56 @@ Because our approach has a random component (stochastic nature of the agents mov
 |-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|-------------------------------|
 | 1           | Interacted with Mesa and Solara to plot a single graph and randomly generate wastes and rules. No agent interaction yet.                                     | ∞ steps          | ![](assets/no_step.png)    |
 | 2           | Implemented agents that move randomly, collect wastes, and transform them. Red agents dispose of waste in disposal zones.                                     | ~330 steps                | ![](assets/step2_plot.jpg)    |
-| 3           | Enabled communication between agents—e.g., yellow agents are notified when others transform yellow waste nearby.                                              | ~230 steps       | ![](assets/results_400_v2.png)    |
-| 4           | Fine-tuned heuristics and communication using multi-agent optimization strategies, inspired by pheromone trails (like ants). Collective map had the most effects.                                 | ~X steps              | ![](assets/step4_plot.jpg)    |
+| 3           | Enabled communication between agents (limited to communicating position of transformed waste to the nearest agent of corresponding colours)                     | ~230 steps       | ![](assets/results_400_v2.png)    |
+| 4           | Fine-tuned heuristic strategy and communication using multi-agent optimization strategies (Collective exploration map inspired by ants)                                 | ~X steps              | ![](assets/step4_plot.jpg)    |
 | 5           | Not implemented due to time constraints                                                                                | ? steps                 | ![](assets/step5_plot.jpg)    |
 
 
 
 # Problem Overview and Constraints
+In all honesty, the below section was generated with chatgpt to reflect our understanding of the project.
 
-## Problem Overview
-The objective is to model and simulate a multi-agent system of robots that collect, transform, and transport hazardous waste in a hostile environment. The environment consists of different radioactive zones, and the robots must work within their capabilities to efficiently manage waste disposal. The mission involves:
-- **Collecting** waste from designated areas.
-- **Transforming** waste from one type to another.
-- **Transporting** transformed waste to a secure disposal area.
-- **Navigating** the environment while adhering to movement restrictions imposed by radioactivity levels.
+## 🌍 Problem Overview  
+The objective is to model and simulate a **multi-agent system** of robots 🤖 that **collect**, **transform**, and **transport hazardous waste** ☢️ in a hostile environment. The environment consists of different **radioactive zones**, and the robots must work within their capabilities to efficiently manage waste disposal.  
+The mission involves:  
+- 🧹 **Collecting** waste from designated areas.  
+- 🔄 **Transforming** waste from one type to another.  
+- 🚛 **Transporting** transformed waste to a secure disposal area.  
+- 🧭 **Navigating** the environment while adhering to movement restrictions imposed by radioactivity levels.
 
-## Environmental Constraints
-The environment is divided into three distinct zones, each with increasing levels of radioactivity:
-1. **Zone 1 (Low Radioactivity)**: Contains randomly placed green waste.
-2. **Zone 2 (Medium Radioactivity)**: Intermediate area for waste transformation.
-3. **Zone 3 (High Radioactivity)**: Final destination where transformed red waste must be stored.
+---
 
-Waste types:
-- **Green Waste**: Initial waste collected from Zone 1.
-- **Yellow Waste**: Transformed from green waste.
-- **Red Waste**: Transformed from yellow waste and stored in Zone 3.
+## ⚠️ Environmental Constraints  
+The environment is divided into **three distinct zones**, each with increasing levels of radioactivity:
 
-## Robot Constraints
-Three types of robots operate under specific constraints:
-### Green Robot:
-- Moves within **Zone 1 only**.
-- Collects 2 green wastes → Transforms into 1 yellow waste.
-- Transports 1 yellow waste eastward.
+1. 🟢 **Zone 1 (Low Radioactivity)**: Contains randomly placed **green waste** ♻️.  
+2. 🟡 **Zone 2 (Medium Radioactivity)**: Intermediate area for **waste transformation**.  
+3. 🔴 **Zone 3 (High Radioactivity)**: Final destination where **transformed red waste** must be stored securely.
 
-### Yellow Robot:
-- Moves within **Zones 1 and 2**.
-- Collects 2 yellow wastes → Transforms into 1 red waste.
-- Transports 1 red waste eastward.
+### 🗑️ Waste Types:
+- ♻️ **Green Waste**: Initial waste collected from Zone 1.  
+- 💛 **Yellow Waste**: Transformed from green waste.  
+- ❤️ **Red Waste**: Transformed from yellow waste and stored in Zone 3.
 
-### Red Robot:
-- Moves within **Zones 1, 2, and 3**.
-- Collects 1 red waste → Transports it to the waste disposal zone in Zone 3.
+---
 
+## 🤖 Robot Constraints  
+
+### 🟢 Green Robot:
+- 🧭 Moves within **Zone 1 only**.  
+- ♻️ Collects **2 green wastes** → 🔄 Transforms into **1 yellow waste**.  
+- 🚚 Transports **1 yellow waste** eastward ➡️.
+
+### 💛 Yellow Robot:
+- 🧭 Moves within **Zones 1 and 2**.  
+- 💛 Collects **2 yellow wastes** → 🔄 Transforms into **1 red waste**.  
+- 🚚 Transports **1 red waste** eastward ➡️.
+
+### 🔴 Red Robot:
+- 🧭 Moves within **Zones 1, 2, and 3**.  
+- ❤️ Collects **1 red waste** → 🚛 Transports it to the **waste disposal zone** in Zone 3.
+
+---
 
 # How to run the code
 

@@ -129,7 +129,7 @@ pip install mesa solara matplotlib plotly
 Navigate to the project directory and run the Solara app:
 
 ```bash
-cd ./mission_1
+cd ./step_4
 solara run run.py
 ```
 

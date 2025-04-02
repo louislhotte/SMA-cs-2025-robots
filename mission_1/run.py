@@ -23,8 +23,9 @@ from model import RobotMission
 from agents import GreenRobot, YellowRobot, RedRobot
 from objects import Radioactivity, WasteDisposalZone, Waste
 import os 
+import plotly.graph_objects as go
 
-# Create a model instance with default parameters
+
 model = RobotMission(
     width=12,
     height=10,
@@ -36,54 +37,51 @@ model = RobotMission(
     nb_red_agent=2
 )
 
-# Create reactive state for the model and simulation step
 current_model = solara.reactive(model)
 step_count = solara.reactive(0)
-
-# Global variable to store waste count history as tuples: (step, green, yellow, red)
 waste_history = []
+journal_logs = []
+action_stats = {"GreenRobot": 0, "YellowRobot": 0, "RedRobot": 0}
+
+
+def log_action(message):
+    journal_logs.append(f"[Step {step_count.value}] {message}")
+    if len(journal_logs) > 10:
+        journal_logs.pop(0)
+
 
 def update_waste_history():
-    """Update waste_history with the current waste counts from the model."""
     counts = {"green": 0, "yellow": 0, "red": 0}
     for agent in current_model.value.schedule.agents:
         if isinstance(agent, Waste):
-            waste_type = agent.waste_type
-            if waste_type in counts:
-                counts[waste_type] += 1
+            counts[agent.waste_type] += 1
     waste_history.append((step_count.value, counts["green"], counts["yellow"], counts["red"]))
 
-# Function to step the model and update history
+
 def step_model():
     current_model.value.step()
     step_count.value += 1
     update_waste_history()
 
-# Function to run simulation continuously while running is True.
-def run_simulation(interval=0.5):
+
+def run_simulation(interval=0.1):
     if running.value:
         step_model()
-        # Schedule the next step using a background timer
         threading.Timer(interval, run_simulation, [interval]).start()
 
-# Function to render agents on the grid with legend below
+
 def render_grid():
     fig = Figure(figsize=(10, 8))
     ax = fig.add_subplot(111)
-    
-    # Plot the grid
+
     grid_width = current_model.value.grid.width
     grid_height = current_model.value.grid.height
-    
-    # Draw zones
     zone_width = grid_width // 3
     ax.add_patch(plt.Rectangle((0, 0), zone_width, grid_height, color='lightgreen', alpha=0.3))
     ax.add_patch(plt.Rectangle((zone_width, 0), zone_width, grid_height, color='lightyellow', alpha=0.3))
     ax.add_patch(plt.Rectangle((2*zone_width, 0), zone_width, grid_height, color='lightcoral', alpha=0.3))
-    
-    # Draw agents
+
     for agent in current_model.value.schedule.agents:
-        # Skip agents with no position
         if not hasattr(agent, 'pos') or agent.pos is None:
             continue
         try:
@@ -94,18 +92,13 @@ def render_grid():
             elif isinstance(agent, RedRobot):
                 ax.plot(agent.pos[0] + 0.5, agent.pos[1] + 0.5, 'ro', markersize=10)
             elif isinstance(agent, Waste):
-                if agent.waste_type == "green":
-                    ax.plot(agent.pos[0] + 0.5, agent.pos[1] + 0.5, 'gs', markersize=8)
-                elif agent.waste_type == "yellow":
-                    ax.plot(agent.pos[0] + 0.5, agent.pos[1] + 0.5, 'ys', markersize=8)
-                elif agent.waste_type == "red":
-                    ax.plot(agent.pos[0] + 0.5, agent.pos[1] + 0.5, 'rs', markersize=8)
+                symbol = {'green': 'gs', 'yellow': 'ys', 'red': 'rs'}[agent.waste_type]
+                ax.plot(agent.pos[0] + 0.5, agent.pos[1] + 0.5, symbol, markersize=8)
             elif isinstance(agent, WasteDisposalZone):
                 ax.plot(agent.pos[0] + 0.5, agent.pos[1] + 0.5, 'bs', markersize=6)
         except Exception as e:
             print(f"Error drawing agent {agent.unique_id}: {e}")
-    
-    # Set grid properties
+
     ax.set_xlim(0, grid_width)
     ax.set_ylim(0, grid_height)
     ax.set_xticks(range(grid_width + 1))
@@ -113,7 +106,6 @@ def render_grid():
     ax.grid(True)
     ax.set_title(f'Robot Waste Simulation - Step {step_count.value}')
 
-    # Create custom legend elements
     legend_elements = [
         Line2D([0], [0], marker='o', color='w', label='Green Robot', markerfacecolor='green', markersize=10),
         Line2D([0], [0], marker='o', color='w', label='Yellow Robot', markerfacecolor='yellow', markersize=10),
@@ -123,61 +115,58 @@ def render_grid():
         Line2D([0], [0], marker='s', color='w', label='Red Waste', markerfacecolor='red', markersize=8),
         Line2D([0], [0], marker='s', color='w', label='Waste Disposal Zone', markerfacecolor='blue', markersize=6),
     ]
-    
+
     ax.legend(handles=legend_elements, loc='center', bbox_to_anchor=(0.5, -0.1), ncol=4)
-    
     return fig
 
-# Function to render the waste count line plot (evolution over steps)
+
 def render_lineplot():
     fig = Figure(figsize=(6, 4))
     ax = fig.add_subplot(111)
     if waste_history:
-        # Unpack history data
-        steps = [s for s, g, y, r in waste_history]
-        green_counts = [g for s, g, y, r in waste_history]
-        yellow_counts = [y for s, g, y, r in waste_history]
-        red_counts = [r for s, g, y, r in waste_history]
-        # Plot lines with markers at each step
-        ax.plot(steps, green_counts, label="Green Waste", marker='o', color='green')
-        ax.plot(steps, yellow_counts, label="Yellow Waste", marker='o', color='gold')
-        ax.plot(steps, red_counts, label="Red Waste", marker='o', color='red')
+        steps, greens, yellows, reds = zip(*waste_history)
+        ax.plot(steps, greens, label="Green Waste", marker='o', color='green')
+        ax.plot(steps, yellows, label="Yellow Waste", marker='o', color='gold')
+        ax.plot(steps, reds, label="Red Waste", marker='o', color='red')
         ax.set_title("Waste Count over Simulation Steps")
         ax.set_xlabel("Step")
         ax.set_ylabel("Waste Count")
         ax.legend()
     return fig
 
-# Function to render a textual performance report for robot agents
-def render_report():
-    report_lines = []
-    for agent in current_model.value.schedule.agents:
-        if isinstance(agent, (GreenRobot, YellowRobot, RedRobot)):
-            collected = getattr(agent.knowledge, 'collected_waste', 0)
-            report_lines.append(f"{agent.__class__.__name__} {agent.unique_id}: {collected} waste collected, performing mission.")
-    if not report_lines:
-        report_lines.append("No agent performance data available.")
-    return "\n".join(report_lines)
 
-# Reactive variable to control simulation running state
+def render_journal():
+    if not journal_logs:
+        return solara.Markdown("_No activity yet._")
+    return solara.Markdown("\n".join(journal_logs))
+
+
+def render_agent_stats():
+    fig = Figure(figsize=(5, 3))
+    ax = fig.add_subplot(121)
+    names = list(action_stats.keys())
+    values = list(action_stats.values())
+    ax.bar(names, values)
+    ax.set_title("Agent Action Count")
+    ax.set_ylabel("# Actions")
+    return fig
+
+
 running = solara.reactive(False)
 
-# The main Solara app using a sidebar for parameter controls
 @solara.component
 def Page():
-    # Create reactive variables for model parameters
-    width_val = solara.reactive(10)
-    height_val = solara.reactive(10)
+    width_val = solara.reactive(12)
+    height_val = solara.reactive(12)
     initial_green_waste_val = solara.reactive(10)
-    initial_yellow_waste_val = solara.reactive(5)
-    initial_red_waste_val = solara.reactive(2)
+    initial_yellow_waste_val = solara.reactive(8)
+    initial_red_waste_val = solara.reactive(8)
     nb_green_agent_val = solara.reactive(2)
     nb_yellow_agent_val = solara.reactive(2)
     nb_red_agent_val = solara.reactive(2)
 
     def reset_model():
-        # Reset the model using the current slider values and clear waste history
-        global waste_history
+        global waste_history, journal_logs, action_stats
         current_model.value = RobotMission(
             width=width_val.value,
             height=height_val.value,
@@ -190,16 +179,17 @@ def Page():
         )
         step_count.value = 0
         waste_history = []
-        update_waste_history()  # capture initial counts
+        journal_logs = []
+        for key in action_stats:
+            action_stats[key] = 0
+        update_waste_history()
 
     def toggle_running():
-        # Toggle running state. When switching to play, start the simulation.
         running.set(not running.value)
         if running.value:
-            run_simulation()  # start simulation
+            run_simulation()
 
     with solara.Column() as main:
-        # Sidebar with parameter controls
         with solara.Sidebar():
             solara.Markdown("## Parameters")
             solara.SliderInt("Width", value=width_val, min=5, max=30)
@@ -212,33 +202,29 @@ def Page():
             solara.SliderInt("Number of Red Agents", value=nb_red_agent_val, min=1, max=3)
             solara.Button("Reset", on_click=reset_model)
 
-        # Main content area
         solara.Title("Robot Waste Collection Simulation")
         with solara.Row():
             solara.Button("Step", on_click=step_model)
-            # Play/Stop button: shows "Play" when simulation is stopped and "Stop" when running
             solara.Button("Stop" if running.value else "Play", on_click=toggle_running)
             solara.Info(f"Step: {step_count.value}")
+
         with solara.Row():
             with solara.Column():
-                update_counter.get() 
+                update_counter.get()
                 try:
-                    grid_fig = render_grid()
-                    solara.FigureMatplotlib(grid_fig)
+                    solara.FigureMatplotlib(render_grid())
                 except Exception as e:
                     solara.Error(f"Error rendering grid: {str(e)}")
+                try:
+                    solara.FigureMatplotlib(render_agent_stats())
+                except Exception as e:
+                    solara.Error(f"Error rendering agent stats: {str(e)}")
+                render_journal()
             with solara.Column():
                 try:
-                    line_fig = render_lineplot()
-                    solara.FigureMatplotlib(line_fig)
+                    solara.FigureMatplotlib(render_lineplot())
                 except Exception as e:
                     solara.Error(f"Error rendering line plot: {str(e)}")
-        try:
-            report_text = render_report()
-            solara.Markdown(report_text)
-        except Exception as e:
-            solara.Error(f"Error rendering report: {str(e)}")
-    return main
 
 # To run the app:
 # solara run run.py --port 8523

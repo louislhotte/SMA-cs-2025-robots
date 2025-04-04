@@ -30,7 +30,6 @@ class BaseScheduler:
         """Add an Agent object to the schedule."""
         self._agents[agent.unique_id] = agent
         agent_class = type(agent)
-        # Add agent to dict by class
         if agent_class not in self._agents_dict:
             self._agents_dict[agent_class] = {}
         self._agents_dict[agent_class][agent.unique_id] = agent

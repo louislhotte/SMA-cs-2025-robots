@@ -19,7 +19,6 @@ class GreenRobot(Agent):
         self.unique_id = unique_id
         self.model = model
         self.pos = None
-        # Extend knowledge to include target_location (not used by green)
         self.knowledge = {
             "collected_waste": [],
             "waste_here": False,
@@ -27,7 +26,6 @@ class GreenRobot(Agent):
             "target_location": None,
             "is_exploring": False,
         }
-        # Inbox for receiving messages
         self.inbox = []
 
     def percepts(self):
@@ -38,7 +36,6 @@ class GreenRobot(Agent):
             self.model.explored_map[self.pos] = True
         
     def deliberate(self, knowledge):
-        # GreenRobot does not process messages in this example.
         if knowledge["waste_here"] and len(knowledge["collected_waste"]) < 2:
             return "collect_waste"
         elif len(knowledge["collected_waste"]) == 2:
@@ -94,7 +91,6 @@ class YellowRobot(Agent):
         self.unique_id = unique_id
         self.model = model
         self.pos = None
-        # Extend knowledge to include a target for incoming messages.
         self.knowledge = {
             "collected_waste": [],
             "waste_here": False,
@@ -112,7 +108,6 @@ class YellowRobot(Agent):
             self.model.explored_map[self.pos] = True
         
     def process_messages(self):
-        # Process any pick_up messages and set a target location accordingly.
         for message in self.inbox:
             if message.get("type") == "pick_up_waste":
                 self.knowledge["target_location"] = message.get("location")
@@ -120,7 +115,6 @@ class YellowRobot(Agent):
         self.inbox.clear()
 
     def deliberate(self, knowledge):
-        # If a target is set and not yet reached, move toward it.
         if knowledge.get("target_location") is not None and knowledge["current_position"] != knowledge["target_location"]:
             return "move_to_target"
         # Otherwise, follow normal behavior.
@@ -273,7 +267,7 @@ class RedRobot(Agent):
     def move_smartly(self):
         possible_steps = self.model.grid.get_neighborhood(self.pos, moore=False, include_center=False)
         
-        # Filtrer les positions qui sont accessibles
+        # Prendre parmi les positions qui sont accessibles
         allowed_positions = [pos for pos in possible_steps if self.model.is_position_allowed(self, pos)]
         
         if not allowed_positions:

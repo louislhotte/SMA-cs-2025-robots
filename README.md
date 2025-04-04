@@ -44,6 +44,12 @@ In step 4, we fixed a couple of id bugs that made our simulations slower and imp
   <img src="assets/exploration_map.png" alt="Collective Agent Exploration Map" width="200"/>
 </div>
 
+<div align="center">
+  <img src="assets/step_4.jpg" alt="Collective Agent Exploration Map" width="200"/>
+</div>
+
+The fourth step allows the agents to avoid returning to already-explored steps, vastly increasing performance.
+
 To evaluate the algorithms, we ran between 2 and 5 simulations to limit variance.
 
 Lastly, starting from step 3, we implemented a rule allowing agents to not drop the waste on their feet, but instead drop it in waste collection zones, allowing for better communication between agents.
@@ -65,7 +71,11 @@ Because our approach has a random component (stochastic nature of the agents mov
 | 4           | Fine-tuned heuristic strategy and communication using multi-agent optimization strategies (Collective exploration map inspired by ants)                                 | ~100 steps              | ![](assets/step4_plt.png)    |
 | 5           | Not implemented due to time constraints                                                                                | ? steps                 | ![](assets/step5_plot.jpg)    |
 
+## Next Steps
 
+We also considered situations where the problem is not solvable as per our current code. If there is an impair number of waste remaining and agents have empty stocks, or if two agents have one waste in their stock, we thought of implementing a new action "exchange".
+
+However, due to time constraints, we did not have time to implement this. 
 
 # Problem Overview and Constraints
 In all honesty, the below section was generated with chatgpt to reflect our understanding of the project.

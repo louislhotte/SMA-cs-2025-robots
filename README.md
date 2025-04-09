@@ -14,6 +14,8 @@ The ambition of this project being quite daunting, we decided to take the projec
 - Step 4 consisted in fine-tuning the heuristics and communication rules to leverage multi-agent strength (inspired by ants' pheromone as the teachers said) for the best performance possible.
 - Step 5 was not implemented due to time constraints but the goal was to compare the zone limitations of yellow and red agents for better path optimization (detailed in choice section)
 
+![Multi-agent interaction map](assets/multi-agent.jpg)
+
 ## Our solution
 
 ![Solara Front-end Application](assets/Legend.jpg)
@@ -45,7 +47,7 @@ In step 4, we fixed a couple of id bugs that made our simulations slower and imp
 </div>
 
 <div align="center">
-  <img src="assets/step_4.jpg" alt="Collective Agent Exploration Map" width="200"/>
+  <img src="assets/step_4.jpg" alt="Collective Agent Exploration Map" width="400"/>
 </div>
 
 The fourth step allows the agents to avoid returning to already-explored steps, vastly increasing performance.

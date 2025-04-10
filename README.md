@@ -70,8 +70,15 @@ Because our approach has a random component (stochastic nature of the agents mov
 | 1           | Interacted with Mesa and Solara to plot a single graph and randomly generate wastes and rules. No agent interaction yet.                                     | ∞ steps          | ![](assets/no_step.png)    |
 | 2           | Implemented agents that move randomly, collect wastes, and transform them. Red agents dispose of waste in disposal zones.                                     | ~330 steps                | ![](assets/step2_plot.jpg)    |
 | 3           | Enabled communication between agents (limited to communicating position of transformed waste to the nearest agent of corresponding colours)                     | ~230 steps       | ![](assets/results_400_v2.png)    |
-| 4           | Fine-tuned heuristic strategy and communication using multi-agent optimization strategies (Collective exploration map inspired by ants)                                 | ~100 steps              | ![](assets/step4_plt.png)    |
+| 4           | Fine-tuned heuristic strategy and communication using multi-agent optimization strategies (Collective exploration map inspired by ants)                                 | ~80-170 steps               | ![](assets/step4_plt.png)    |
 | 5           | Not implemented due to time constraints                                                                                | ? steps                 | ![](assets/step5_plot.jpg)    |
+
+
+Since we wanted to be more rigorous on our step 4 implementation, we ran ten simulations, some of them featuring different initial parameters.
+This allowed us to really identify the defects and determine next steps.
+Results and comments can be seen in the excel file of this github repo, or directly in the screenshot below:
+
+![Excel Screenshot Results](./assets/results.png)
 
 ## Next Steps
 
@@ -141,7 +148,7 @@ pip install mesa solara matplotlib plotly
 Navigate to the project directory and run the Solara app:
 
 ```bash
-cd ./step_4
+cd ./step_4/step_4
 solara run run.py
 ```
 
